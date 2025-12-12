@@ -205,7 +205,6 @@ export async function healthCheck(): Promise<boolean> {
         const { text } = await generateText({
             model: google(CONFIG.MODEL),
             prompt: "Reply with OK",
-            maxTokens: 5,
         });
         return text.toLowerCase().includes("ok");
     } catch {
