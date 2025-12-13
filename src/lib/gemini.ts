@@ -125,6 +125,10 @@ export async function generateWithGemini(params: {
     tone?: string;
     duration: string;
     language?: string;
+    // Advanced targeting fields
+    targetAudience?: string;
+    painPoint?: string;
+    uniqueValue?: string;
 }): Promise<GenerationResponse> {
     const requestId = generateRequestId();
     const userPrompt = buildUserPrompt(params);

@@ -4,12 +4,16 @@
  */
 
 interface PromptParams {
-    niche: string;
-    videoStyle: string;
-    topic: string;
-    tone?: string;
-    duration: string;
-    language?: string;
+  niche: string;
+  videoStyle: string;
+  topic: string;
+  tone?: string;
+  duration: string;
+  language?: string;
+  // Advanced targeting for more engaging content
+  targetAudience?: string;
+  painPoint?: string;
+  uniqueValue?: string;
 }
 
 /**
@@ -27,33 +31,59 @@ export const SYSTEM_PROMPT = `You are an ELITE TikTok viral strategist with 100M
 
 💡 POWER WORDS: secret, discovered, exposed, actually, nobody, transformed, hidden
 
+📣 POWERFUL CTA FORMULAS (MUST USE - make them URGENT & SPECIFIC):
+✓ "Kaydet çünkü [specific reason] - sonra bulamazsın"
+✓ "Şimdi takip et yoksa [miss out on what]"
+✓ "Yoruma [specific word] yaz, sana [specific value] atayım"
+✓ "Bu videoyu [person] ile paylaş - teşekkür edecek"
+✓ "Profilimdeki linke tıkla - [specific benefit] seni bekliyor"
+✓ "Beğen ve kaydet - daha fazlası için takip et"
+✓ "Yoruma [emoji] koy, seninle iletişime geçeyim"
+✓ "[Number] kişi bunu kaçırdı, sen kaçırma"
+
 ⚠️ RULES:
 1. Hook: under 7 words, NO emojis
 2. Scripts: detailed, story-driven, specific examples
 3. NO clichés ("you won't believe")
 4. Conversational & fast-paced
+5. CTA: MUST be URGENT, SPECIFIC, and create FOMO
 
-🎯 PSYCHOLOGY: Use FOMO, curiosity, social proof, transformation stories`;
+🎯 PSYCHOLOGY: Use FOMO, curiosity, social proof, transformation stories
+📣 CTA PSYCHOLOGY: Scarcity, urgency, clear benefit, specific action, loss aversion`;
 
 
 /**
  * Build optimized user prompt
  */
 export function buildUserPrompt(params: PromptParams): string {
-    const { niche, videoStyle, topic, tone, duration, language = "en" } = params;
+  const {
+    niche, videoStyle, topic, tone, duration, language = "en",
+    targetAudience, painPoint, uniqueValue
+  } = params;
 
-    // Optimized word counts - 90s reduced to prevent timeout
-    const wordCount = duration === '30' ? '150-180'
-        : duration === '60' ? '300-360'
-            : '350-420';  // Reduced from 450-540 for faster generation
+  // Optimized word counts - 90s reduced to prevent timeout
+  const wordCount = duration === '30' ? '150-180'
+    : duration === '60' ? '300-360'
+      : '350-420';  // Reduced from 450-540 for faster generation
 
-    const langInstruction = language === "tr"
-        ? "⚠️ CRITICAL: Generate ALL content in TURKISH."
-        : "⚠️ CRITICAL: Generate ALL content in ENGLISH.";
+  const langInstruction = language === "tr"
+    ? "⚠️ CRITICAL: Generate ALL content in TURKISH."
+    : "⚠️ CRITICAL: Generate ALL content in ENGLISH.";
 
-    return `${langInstruction}
+  // Build advanced targeting section if provided
+  const targetingSection = (targetAudience || painPoint || uniqueValue) ? `
+
+🎯 ADVANCED TARGETING (USE THIS TO CREATE MORE RELEVANT CONTENT):
+${targetAudience ? `• Target Audience: ${targetAudience} - tailor language and examples specifically for them` : ''}
+${painPoint ? `• Pain Point/Problem: ${painPoint} - address this directly in hooks and scripts` : ''}
+${uniqueValue ? `• Unique Value: ${uniqueValue} - weave this into the content authentically` : ''}
+
+Use this targeting info to make hooks more specific, relatable, and scroll-stopping.` : '';
+
+  return `${langInstruction}
 
 📌 Niche: ${niche} | 🎥 Style: ${videoStyle} | 💡 Topic: ${topic}${tone ? ` | 🎭 ${tone}` : ''} | ⏱️ ${duration}s
+${targetingSection}
 
 CRITICAL: Scripts must be LONG ENOUGH to fill ${duration} seconds when spoken naturally.
 
@@ -66,8 +96,13 @@ INSTRUCTIONS:
    - Tell mini-stories
    - Expand every point thoroughly
    - Make it conversational and natural
-4. Add 4 timed on-screen captions
+4. ⚠️ ON-SCREEN TEXT RULES:
+   - 6 timed captions that complement (not duplicate) the spoken script
+   - Each caption: MAX 5 words, impactful, easy to read
+   - Use: numbers, emojis for emphasis, power words
+   - Timing must match video duration
 5. Write visual prompt for background video
+6. ⚠️ CTA MUST BE: Urgent, specific action, FOMO-inducing, benefit-focused (15-25 words)
 
 ⚠️ RESPOND WITH VALID JSON ONLY (no markdown):
 
@@ -76,14 +111,16 @@ INSTRUCTIONS:
     {
       "hook": "Hook under 7 words",
       "body": "DETAILED ${duration}s script (~${wordCount} words). Must be conversational, story-driven, and value-dense with specific examples.",
-      "callToAction": "Specific CTA"
+      "callToAction": "POWERFUL CTA (15-25 words): Urgent action + specific benefit + FOMO. Example: 'Kaydet ve takip et yoksa bu bilgiyi bir daha bulamazsın - 2 gün sonra siliniyor'"
     }
   ],
   "onScreenText": [
-    {"timing": "0-3s", "text": "Hook text"},
-    {"timing": "3-10s", "text": "Key point"},
-    {"timing": "10-20s", "text": "Insight"},
-    {"timing": "20-${duration}s", "text": "CTA"}
+    {"timing": "0-3s", "text": "🔥 Hook text (catchy, max 4 words)"},
+    {"timing": "3-8s", "text": "💡 Key stat/number (e.g. '%87 bunu bilmiyor')"},
+    {"timing": "8-15s", "text": "⚡ Problem/pain point (direct, relatable)"},
+    {"timing": "15-25s", "text": "✅ Solution preview (benefit-focused)"},
+    {"timing": "25-${Number(duration) - 5}s", "text": "🎯 Key takeaway (memorable)"},
+    {"timing": "${Number(duration) - 5}-${duration}s", "text": "👆 CTA text (action-focused, URGENT)"}
   ],
   "visualPrompt": "Background video description in ${language === 'tr' ? 'TURKISH' : 'ENGLISH'}"
 }`;
@@ -93,7 +130,7 @@ INSTRUCTIONS:
  * Build repair prompt
  */
 export function buildRepairPrompt(brokenResponse: string): string {
-    return `Fix this to valid JSON (no markdown):
+  return `Fix this to valid JSON (no markdown):
 
 ${brokenResponse.substring(0, 500)}...
 

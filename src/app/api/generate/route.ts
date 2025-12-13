@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
             tone,
             duration = "60",
             language = "tr",
-            userId
+            userId,
+            // Advanced targeting fields
+            targetAudience = "",
+            painPoint = "",
+            uniqueValue = ""
         } = body;
 
         console.log(`[${requestId}] Generation request started`);
@@ -107,6 +111,10 @@ export async function POST(request: NextRequest) {
             tone,
             duration,
             language,
+            // Advanced targeting
+            targetAudience,
+            painPoint,
+            uniqueValue,
         });
 
         console.log(`[${requestId}] Success: Generated ${result.scripts.length} scripts`);

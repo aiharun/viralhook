@@ -10,11 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import {
     Rocket, Sparkles, Loader2, Crown, Lock, Check, AlertCircle,
-    Lightbulb, Shuffle, Zap, FileText, Video, ChevronRight, Target, Users
+    Lightbulb, Shuffle, Zap, FileText, Video, ChevronRight, ChevronLeft, Target, Users
 } from "lucide-react";
 import { ResultsDisplay } from "@/components/results/ResultsDisplay";
 import { useAuth, MAX_FREE_GENERATIONS } from "@/contexts/AuthContext";
-import AnalysisModal from "@/components/AnalysisModal";
 import { saveGeneration } from "@/lib/scriptService";
 
 const NICHES = [
@@ -51,217 +50,136 @@ const VIDEO_STYLES = [
 ];
 
 const TONES = [
-    { key: "funny", value: "funny", emoji: "😂", label: "Komik" },
-    { key: "serious", value: "serious", emoji: "🎯", label: "Ciddi" },
-    { key: "dramatic", value: "dramatic", emoji: "🎭", label: "Dramatik" },
-    { key: "casual", value: "casual", emoji: "😎", label: "Rahat" },
-    { key: "professional", value: "professional", emoji: "👔", label: "Profesyonel" },
-    { key: "edgy", value: "edgy", emoji: "🔥", label: "Cesur" },
+    { key: "funny", value: "funny", emoji: "😂", label: "Komik", desc: "Güldürürken değer katan içerik" },
+    { key: "serious", value: "serious", emoji: "🎯", label: "Ciddi", desc: "Doğrudan, güvenilir bilgi" },
+    { key: "dramatic", value: "dramatic", emoji: "🎭", label: "Dramatik", desc: "Duygusal, hikaye odaklı" },
+    { key: "casual", value: "casual", emoji: "😎", label: "Rahat", desc: "Arkadaşça, samimi anlatım" },
+    { key: "professional", value: "professional", emoji: "👔", label: "Profesyonel", desc: "Uzman, otoriter ton" },
+    { key: "edgy", value: "edgy", emoji: "🔥", label: "Cesur", desc: "Provokatif, dikkat çekici" },
 ];
 
-// Dynamic topic generator based on niche, style, and tone
-const generateRandomTopic = (niche: string, style: string, tone: string): string => {
-    const topicTemplates: Record<string, Record<string, string[]>> = {
-        fitness: {
-            storytelling: [
-                "kilo verme yolculuğum ve öğrendiğim 5 ders",
-                "spor salonunda yaşadığım en utanç verici an",
-                "3 ayda vücut dönüşümümün hikayesi",
-                "antrenmanı bırakıp geri döndüğümde neler değişti"
-            ],
-            "hard sales": [
-                "bu protein tozu neden rakiplerinden farklı",
-                "kullandığım fitness uygulaması hayatımı değiştirdi",
-                "bu ekipman olmadan antrenman yapmıyorum"
-            ],
-            "reaction/duet": [
-                "TikTok'taki fitness tavsiyelerine tepkim",
-                "influencer'ların gizlediği gerçekler",
-                "gerçek vs sahte fitness dönüşümleri"
-            ],
-            "educational/how-to": [
-                "evde 15 dakikada karın kası nasıl yapılır",
-                "yeni başlayanlar için doğru squat tekniği",
-                "metabolizmayı hızlandırmanın 5 yolu"
-            ],
-            controversy: [
-                "personal trainer'ınız size yalan söylüyor",
-                "kardiyo aslında kilo verdirmiyor",
-                "protein ihtiyacınız sandığınız kadar değil"
-            ]
-        },
-        finance: {
-            storytelling: [
-                "borçtan nasıl kurtuldum hikayem",
-                "ilk 100.000 TL'yi nasıl biriktirdim",
-                "yatırım hatalarım ve öğrendiklerim"
-            ],
-            "hard sales": [
-                "kullandığım yatırım uygulaması",
-                "bu kredi kartı size para kazandırıyor"
-            ],
-            "educational/how-to": [
-                "bütçe yapmanın kolay yolu",
-                "acil durum fonu nasıl oluşturulur",
-                "ilk yatırımınızı nasıl yaparsınız"
-            ],
-            controversy: [
-                "bankalar sizi nasıl soyuyor",
-                "emeklilik sistemi neden çöküyor",
-                "zenginlerin bildiği vergi sırları"
-            ]
-        },
-        relationships: {
-            storytelling: [
-                "eşimle nasıl tanıştık hikayesi",
-                "ayrılık sürecinde öğrendiklerim",
-                "uzun mesafe ilişkimiz nasıl işliyor"
-            ],
-            controversy: [
-                "modern flört neden bu kadar zor",
-                "herkesin görmezden geldiği red flag'ler",
-                "neden kimse gerçek hislerini söylemiyor"
-            ],
-            "educational/how-to": [
-                "iletişimi güçlendirmenin yolları",
-                "tartışmaları nasıl çözersiniz",
-                "güven nasıl yeniden inşa edilir"
-            ]
-        },
-        comedy: {
-            storytelling: [
-                "başıma gelen en utanç verici olay",
-                "aileme itiraf edemediğim şeyler",
-                "işten neredeyse kovuluyordum"
-            ],
-            "reaction/duet": [
-                "cringe videolara tepkim",
-                "anne babamın eski fotoğraflarına tepkim"
-            ]
-        },
-        tech: {
-            "educational/how-to": [
-                "telefonunuzu hızlandırmanın 5 yolu",
-                "kimsenin bilmediği iPhone ayarları",
-                "internette güvenliğinizi koruma rehberi"
-            ],
-            controversy: [
-                "Apple sizi nasıl kandırıyor",
-                "sosyal medya beyninizi nasıl etkiliyor",
-                "yapay zeka işlerimizi alacak mı"
-            ]
-        },
-        education: {
-            "educational/how-to": [
-                "sınava daha verimli çalışma yöntemleri",
-                "herhangi bir dili 3 ayda öğrenin",
-                "not alma teknikleri"
-            ],
-            controversy: [
-                "okul sistemi neden başarısız",
-                "üniversite artık gerekli mi"
-            ]
-        },
-        crypto: {
-            controversy: [
-                "bu altcoin 10x yapabilir",
-                "Bitcoin neden 100.000 dolara çıkacak",
-                "kripto dolandırıcılıklarını nasıl anlarsınız"
-            ],
-            storytelling: [
-                "kripto'da her şeyimi nasıl kaybettim",
-                "ilk Bitcoin'imi aldığım gün"
-            ]
-        },
-        beauty: {
-            "educational/how-to": [
-                "günlük makyaj rutini 10 dakikada",
-                "cilt bakımında yaptığınız hatalar",
-                "saç bakım sırlarım"
-            ],
-            storytelling: [
-                "cilt problemlerimi nasıl çözdüm",
-                "makyaj yolculuğum"
-            ]
-        },
-        food: {
-            "educational/how-to": [
-                "evde restoran kalitesinde yemek yapma",
-                "hızlı ve sağlıklı yemek tarifleri"
-            ],
-            storytelling: [
-                "mutfakta yaşadığım en büyük felaket"
-            ]
-        },
-        travel: {
-            storytelling: [
-                "en kötü seyahat deneyimim",
-                "bu şehir beklentilerimi aştı"
-            ],
-            "educational/how-to": [
-                "ucuz seyahat etmenin sırları",
-                "valiz hazırlama rehberi"
-            ]
-        },
-        gaming: {
-            "reaction/duet": [
-                "bu oyuncu inanılmaz bir hareket yaptı",
-                "en çok sinir olduğum oyun anları"
-            ],
-            storytelling: [
-                "oyunculuk kariyerime nasıl başladım"
-            ]
-        },
-        motivation: {
-            storytelling: [
-                "dipten nasıl çıktım hikayem",
-                "başarısızlık beni nasıl güçlendirdi"
-            ],
-            controversy: [
-                "motivasyon videoları sizi kandırıyor",
-                "başarı sırları kimsenin söylemediği"
-            ]
-        }
+// Dynamic topic generator based on niche - Simple short topics
+const generateRandomTopic = (niche: string): string => {
+    const topicsByNiche: Record<string, string[]> = {
+        fitness: [
+            "sabah egzersiz rutini",
+            "evde karın kası antrenmanı",
+            "kilo verme ipuçları",
+            "protein alımı",
+            "yağ yakma teknikleri",
+            "kas yapma süreci",
+            "antrenman motivasyonu",
+            "sağlıklı beslenme",
+            "esneklik egzersizleri",
+            "koşu performansı"
+        ],
+        finance: [
+            "bütçe yönetimi",
+            "tasarruf yöntemleri",
+            "yatırım başlangıcı",
+            "borç ödeme stratejisi",
+            "pasif gelir kaynakları",
+            "kripto para temelleri",
+            "emeklilik planlaması",
+            "vergi avantajları",
+            "acil durum fonu",
+            "finansal özgürlük"
+        ],
+        relationships: [
+            "sağlıklı iletişim",
+            "güven inşa etme",
+            "ilk buluşma ipuçları",
+            "uzun mesafe ilişkiler",
+            "tartışma çözme",
+            "sevgi dili keşfi",
+            "toksin ilişki işaretleri",
+            "kendini sevme",
+            "evlilik hazırlığı",
+            "flört önerileri"
+        ],
+        food: [
+            "kolay yemek tarifleri",
+            "15 dakikalık yemekler",
+            "sağlıklı atıştırmalıklar",
+            "kahvaltı fikirleri",
+            "meal prep ipuçları",
+            "protein dolu tarifler",
+            "düşük kalorili tatlılar",
+            "bir tencerede yemek",
+            "vegan alternatifler",
+            "mutfak hileleri"
+        ],
+        beauty: [
+            "cilt bakım rutini",
+            "makyaj temelleri",
+            "saç bakım ipuçları",
+            "doğal güzellik",
+            "anti-aging önerileri",
+            "göz makyajı teknikleri",
+            "günlük makyaj",
+            "cilt problemleri",
+            "nemlendiriciler",
+            "güneş koruma"
+        ],
+        tech: [
+            "iPhone gizli özellikleri",
+            "verimlilik uygulamaları",
+            "sosyal medya ipuçları",
+            "teknoloji haberleri",
+            "yapay zeka araçları",
+            "fotoğraf düzenleme",
+            "telefon aksesuar önerileri",
+            "bilgisayar hızlandırma",
+            "siber güvenlik",
+            "akıllı ev sistemleri"
+        ],
+        motivation: [
+            "sabah rutini",
+            "hedef belirleme",
+            "kötü alışkanlıkları bırakma",
+            "öz disiplin",
+            "zaman yönetimi",
+            "stres yönetimi",
+            "özgüven artırma",
+            "erteleme sorunu",
+            "başarı mindset",
+            "pozitif düşünce"
+        ],
+        travel: [
+            "ucuz seyahat ipuçları",
+            "valiz hazırlama",
+            "gizli cennetler",
+            "solo seyahat",
+            "uçak bileti hileleri",
+            "konaklama önerileri",
+            "yerel deneyimler",
+            "seyahat fotğrafçılığı",
+            "vize işlemleri",
+            "backpacking"
+        ],
+        gaming: [
+            "oyun tavsiyeleri",
+            "strateji ipuçları",
+            "setup turu",
+            "oyun incelemeleri",
+            "e-spor haberleri",
+            "gaming ekipman",
+            "oyun hikayeleri",
+            "multiplayer taktikleri",
+            "yeni çıkan oyunlar",
+            "retro gaming"
+        ]
     };
 
-    // Get topics for selected niche and style
-    const nicheTopics = topicTemplates[niche];
-    let topics: string[] = [];
+    const topics = topicsByNiche[niche] || [
+        "gündem konusu",
+        "ilginç bilgiler",
+        "hayat ipuçları",
+        "kişisel deneyimler",
+        "içerik önerileri"
+    ];
 
-    if (nicheTopics) {
-        if (nicheTopics[style]) {
-            topics = nicheTopics[style];
-        } else {
-            // Fallback to any available style for this niche
-            topics = Object.values(nicheTopics).flat();
-        }
-    }
-
-    // Fallback topics if nothing found
-    if (topics.length === 0) {
-        topics = [
-            "izleyicilerin bilmesi gereken bir şey",
-            "deneyimim ve öğrendiklerim",
-            "herkesin yaptığı yaygın hatalar",
-            "size söylemediğim sırlar",
-            "hayatımı değiştiren keşif"
-        ];
-    }
-
-    // Add tone modifier
-    const toneModifiers: Record<string, string[]> = {
-        funny: ["(komik versiyonu)", ""],
-        dramatic: ["ve sonucu şok edici", "inanılmaz sonuç"],
-        professional: ["profesyonel bakış açısı", ""],
-        edgy: ["kimse bunu söylemeye cesaret edemiyor", ""],
-        casual: ["", ""],
-        serious: ["ciddi bir bakış", ""]
-    };
-
-    const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-    const modifier = toneModifiers[tone]?.[Math.floor(Math.random() * toneModifiers[tone].length)] || "";
-
-    return modifier ? `${randomTopic} ${modifier}` : randomTopic;
+    return topics[Math.floor(Math.random() * topics.length)];
 };
 
 interface GeneratedContent {
@@ -276,14 +194,18 @@ export default function GeneratorPage() {
     const [tone, setTone] = useState("");
     const [duration, setDuration] = useState("60");
     const [topic, setTopic] = useState("");
+
+    // Advanced inputs for better hook generation
+    const [targetAudience, setTargetAudience] = useState("");
+    const [painPoint, setPainPoint] = useState("");
+    const [uniqueValue, setUniqueValue] = useState("");
+
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<GeneratedContent | null>(null);
 
     const [error, setError] = useState<string | null>(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [selectedScript, setSelectedScript] = useState<number | null>(null);
-    const [analysisResult, setAnalysisResult] = useState<any>(null);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const { generationsToday, incrementGenerations, user, isAdmin, signOut, loading, isPro } = useAuth();
     const router = useRouter();
@@ -297,7 +219,7 @@ export default function GeneratorPage() {
 
     const handleRandomTopic = () => {
         if (!niche) return;
-        const randomTopic = generateRandomTopic(niche, videoStyle, tone);
+        const randomTopic = generateRandomTopic(niche);
         setTopic(randomTopic);
     };
 
@@ -331,7 +253,11 @@ export default function GeneratorPage() {
                     tone,
                     duration,
                     language: "tr",
-                    userId: user?.uid
+                    userId: user?.uid,
+                    // Advanced targeting for better hooks
+                    targetAudience,
+                    painPoint,
+                    uniqueValue
                 }),
             });
 
@@ -354,38 +280,37 @@ export default function GeneratorPage() {
         }
     };
 
-    const handleAnalyze = async (script: { hook: string; body: string }) => {
-        try {
-            setIsAnalyzing(true);
-            setAnalysisResult(null);
+    const selectedNiche = NICHES.find(n => n.value === niche);
+    const canGenerate = niche && videoStyle && topic.trim().length > 0;
 
-            const response = await fetch("/api/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    hook: script.hook,
-                    body: script.body,
-                    niche,
-                    videoStyle,
-                }),
-            });
+    // Explicit wizard step (user controlled)
+    const [wizardStep, setWizardStep] = useState(1);
 
-            if (!response.ok) {
-                throw new Error("Analysis failed");
-            }
+    // Check if current step is complete (can proceed)
+    const canProceed =
+        (wizardStep === 1 && niche) ||
+        (wizardStep === 2 && videoStyle) ||
+        (wizardStep === 3 && tone) ||
+        (wizardStep === 4 && topic.trim().length > 0);
 
-            const result = await response.json();
-            setAnalysisResult(result);
-        } catch (error) {
-            console.error("Analysis error:", error);
-            setError("Analiz yapılamadı. Lütfen tekrar deneyin.");
-        } finally {
-            setIsAnalyzing(false);
+    const STEPS = [
+        { num: 1, title: "Niş Seçimi", desc: "İçerik kategorinizi seçin", tip: "📌 Hangi alanda içerik oluşturuyorsunuz? Bu, hook'larınızın o alana özel olmasını sağlar." },
+        { num: 2, title: "Video Stili", desc: "Video formatınızı belirleyin", tip: "🎥 Videonuz hikaye mi? Eğitici mi? Satış mı? Her stil farklı hook stratejisi gerektirir." },
+        { num: 3, title: "Ton Seçimi", desc: "Anlatım tarzınızı seçin", tip: "🎭 İçeriğinizin havası ne olacak? Tonunuz kitlenizin duygusal tepkisini belirler." },
+        { num: 4, title: "Konu & Detaylar", desc: "Spesifik konunuzu girin", tip: "💡 Ne hakkında konuşacaksınız? Spesifik olun! 'Kilo verme' yerine '30 günde 5 kilo' gibi." },
+    ];
+
+    const goNext = () => {
+        if (canProceed && wizardStep < 4) {
+            setWizardStep(wizardStep + 1);
         }
     };
 
-    const selectedNiche = NICHES.find(n => n.value === niche);
-    const canGenerate = niche && videoStyle && topic.trim().length > 0;
+    const goBack = () => {
+        if (wizardStep > 1) {
+            setWizardStep(wizardStep - 1);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-background">
@@ -482,7 +407,7 @@ export default function GeneratorPage() {
             {/* Main Content */}
             <main className="relative z-10 max-w-7xl mx-auto px-4 py-8 md:py-12">
                 {/* Header */}
-                <div className="text-center mb-12">
+                <div className="text-center mb-8">
                     <Badge className="mb-4 gradient-primary text-black font-medium">
                         <Sparkles className="w-3.5 h-3.5 mr-1" />
                         AI Destekli
@@ -491,211 +416,406 @@ export default function GeneratorPage() {
                         Viral İçerik Üret
                     </h1>
                     <p className="text-muted-foreground max-w-xl mx-auto">
-                        Niş, stil ve ton seçin - AI sizin için scroll-durdurucu hooklar oluştursun
+                        Adım adım ilerleyin - AI sizin için scroll-durdurucu hooklar oluştursun
                     </p>
                 </div>
 
-                {/* Step Cards */}
-                <div className="grid md:grid-cols-4 gap-6 mb-12">
-                    {/* Step 1: Niche */}
-                    <div className="relative">
-                        <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-black font-bold text-sm shadow-lg shadow-cyan-500/30 z-20">
-                            1
-                        </div>
-                        <div className={`glass rounded-2xl p-5 h-full transition-all relative z-10 ${niche ? 'border-cyan-500/30' : ''}`}>
-                            <Label className="text-sm font-semibold text-white mb-3 block">
-                                📌 Niş Seçin
-                            </Label>
-                            <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-1">
-                                {NICHES.map((n) => {
-                                    const isLocked = !isPro && !isAdmin && !n.free; // Admin bypass
-                                    const isSelected = niche === n.value;
-
-                                    return (
-                                        <button
-                                            key={n.key}
-                                            onClick={() => {
-                                                if (isLocked) {
-                                                    setShowUpgradeModal(true);
-                                                } else if (!isLoading) {
-                                                    setNiche(n.value);
-                                                }
-                                            }}
-                                            disabled={isLoading && !isLocked}
-                                            className={`
-                                                relative p-2 rounded-xl text-center transition-all
-                                                ${isSelected && !isLocked
-                                                    ? `bg-gradient-to-r ${n.color} text-white shadow-lg`
-                                                    : isLocked
-                                                        ? "bg-white/5 hover:bg-white/10 text-muted-foreground cursor-pointer"
-                                                        : "bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white"
-                                                }
-                                                ${isLoading && !isLocked ? "opacity-50 cursor-not-allowed" : ""}
-                                            `}
-                                        >
-                                            {isLocked && (
-                                                <div className="absolute top-1 right-1">
-                                                    <Lock className="w-3 h-3 text-purple-400" />
-                                                </div>
-                                            )}
-                                            <span className="text-xl block">{n.emoji}</span>
-                                            <span className={`text-[10px] block mt-1 font-medium leading-tight ${isLocked ? "text-purple-400" : ""}`}>
-                                                {n.label}
-                                                {isLocked && <span className="block text-[8px]">Pro</span>}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Step 2: Video Style */}
-                    <div className="relative">
-                        <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-black font-bold text-sm shadow-lg shadow-cyan-500/30 z-20">
-                            2
-                        </div>
-                        <div className={`glass rounded-2xl p-5 h-full transition-all relative z-10 ${videoStyle ? 'border-purple-500/30' : ''}`}>
-                            <Label className="text-sm font-semibold text-white mb-3 block">
-                                🎬 Video Stili
-                            </Label>
-                            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-                                {VIDEO_STYLES.map((s) => (
-                                    <button
-                                        key={s.key}
-                                        onClick={() => !isLoading && setVideoStyle(s.value)}
-                                        disabled={isLoading}
-                                        className={`w-full p-2.5 rounded-xl flex items-center gap-2 transition-all ${videoStyle === s.value
-                                            ? "gradient-accent text-white shadow-lg"
-                                            : "bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white"
-                                            } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                    >
-                                        <span className="text-lg">{s.emoji}</span>
-                                        <div className="text-left">
-                                            <span className="text-xs font-medium block">{s.label}</span>
-                                            <span className="text-[10px] opacity-70">{s.desc}</span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Step 3: Tone */}
-                    <div className="relative">
-                        <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-black font-bold text-sm shadow-lg shadow-cyan-500/30 z-20">
-                            3
-                        </div>
-                        <div className={`glass rounded-2xl p-5 h-full transition-all relative z-10 ${tone ? 'border-pink-500/30' : ''}`}>
-                            <Label className="text-sm font-semibold text-white mb-3 block">
-                                🎭 Ton & Süre
-                            </Label>
-                            <div className="grid grid-cols-2 gap-2 mb-4">
-                                {TONES.map((t) => (
-                                    <button
-                                        key={t.key}
-                                        onClick={() => !isLoading && setTone(t.value)}
-                                        disabled={isLoading}
-                                        className={`p-3 rounded-xl flex items-center gap-2 transition-all ${tone === t.value
-                                            ? "gradient-primary text-black shadow-lg"
-                                            : "bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white"
-                                            } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                    >
-                                        <span className="text-lg">{t.emoji}</span>
-                                        <span className="text-xs font-medium">{t.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            <Label className="text-xs font-semibold text-white mb-2 block">
-                                ⏱️ Süre
-                            </Label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {["30", "60", "90"].map((d) => (
-                                    <button
-                                        key={d}
-                                        onClick={() => !isLoading && setDuration(d)}
-                                        disabled={isLoading}
-                                        className={`p-2 rounded-lg text-xs font-medium transition-all ${duration === d
-                                            ? "bg-white text-black"
-                                            : "bg-white/5 text-muted-foreground hover:text-white"
-                                            } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                    >
-                                        {d} sn
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Step 4: Topic */}
-                    <div className="relative">
-                        <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-black font-bold text-sm shadow-lg shadow-cyan-500/30 z-20">
-                            4
-                        </div>
-                        <div className={`glass rounded-2xl p-5 h-full transition-all relative z-10 ${topic ? 'border-green-500/30' : ''}`}>
-                            <Label className="text-sm font-semibold text-white mb-3 block">
-                                ✍️ Konu
-                            </Label>
-
-                            <div className="space-y-3">
-                                <Input
-                                    placeholder="Videonuzun konusu..."
-                                    value={topic}
-                                    onChange={(e) => setTopic(e.target.value)}
-                                    className="bg-white/5 border-white/10 text-white h-12"
-                                    disabled={isLoading}
-                                />
-
-                                {/* Random Topic Button */}
-                                <Button
-                                    variant="outline"
-                                    className="w-full border-cyan-500/30 hover:bg-cyan-500/10 text-cyan-400 hover:text-cyan-300"
-                                    onClick={handleRandomTopic}
-                                    disabled={!niche || isLoading}
-                                >
-                                    <Shuffle className="w-4 h-4 mr-2" />
-                                    AI Konu Öner
-                                </Button>
-
-                                {!niche && (
-                                    <p className="text-[10px] text-muted-foreground text-center">
-                                        Önce niş seçin
-                                    </p>
+                {/* Progress Indicator */}
+                <div className="max-w-4xl mx-auto mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        {STEPS.map((step, index) => (
+                            <div key={step.num} className="flex items-center flex-1">
+                                <div className={`
+                                    flex flex-col items-center
+                                    ${wizardStep >= step.num ? 'opacity-100' : 'opacity-40'}
+                                `}>
+                                    <div className={`
+                                        w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all
+                                        ${wizardStep > step.num
+                                            ? 'bg-green-500 text-white'
+                                            : wizardStep === step.num
+                                                ? 'gradient-primary text-black ring-4 ring-cyan-500/30'
+                                                : 'bg-white/10 text-white/50'
+                                        }
+                                    `}>
+                                        {wizardStep > step.num ? <Check className="w-5 h-5" /> : step.num}
+                                    </div>
+                                    <span className={`text-xs mt-2 font-medium hidden sm:block ${wizardStep >= step.num ? 'text-white' : 'text-muted-foreground'}`}>
+                                        {step.title}
+                                    </span>
+                                </div>
+                                {index < STEPS.length - 1 && (
+                                    <div className={`flex-1 h-1 mx-2 rounded-full transition-all ${wizardStep > step.num ? 'bg-green-500' : 'bg-white/10'}`} />
                                 )}
+                            </div>
+                        ))}
+                    </div>
 
-                                {niche && videoStyle && (
-                                    <p className="text-[10px] text-muted-foreground text-center">
-                                        <Target className="w-3 h-3 inline mr-1" />
-                                        Seçiminize uygun konu önerilecek
-                                    </p>
-                                )}
+                    {/* Current Step Tip Card */}
+                    <div className="glass rounded-2xl p-4 border-l-4 border-cyan-500 bg-gradient-to-r from-cyan-500/10 to-transparent">
+                        <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center shrink-0">
+                                <Lightbulb className="w-4 h-4 text-cyan-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-white">
+                                    Adım {wizardStep}: {STEPS[wizardStep - 1].title}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {STEPS[wizardStep - 1].tip}
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Generate Button */}
-                <div className="flex justify-center mb-12">
-                    <Button
-                        size="lg"
-                        className="px-12 py-7 text-lg font-bold gradient-primary text-black hover:opacity-90 disabled:opacity-50 glow-cyan shadow-xl shadow-cyan-500/30"
-                        onClick={handleGenerate}
-                        disabled={isLoading || !canGenerate}
-                    >
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-                                Üretiliyor...
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles className="w-6 h-6 mr-3" />
-                                Viral İçerik Oluştur
-                                <ChevronRight className="w-5 h-5 ml-2" />
-                            </>
+                {/* Wizard Step Content with Selection Summary */}
+                <div className="max-w-5xl mx-auto mb-8 grid md:grid-cols-3 gap-6">
+                    {/* Main Wizard Content - Left Side */}
+                    <div className="md:col-span-2">
+                        {/* Step 1: Niche */}
+                        {wizardStep === 1 && (
+                            <div className="glass rounded-2xl p-6 transition-all">
+                                <Label className="text-lg font-bold text-white mb-4 block">
+                                    📌 İçerik Nişinizi Seçin
+                                </Label>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Hangi alanda içerik oluşturuyorsunuz? Bu seçim hook'larınızın o alana özel olmasını sağlar.
+                                </p>
+                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 max-h-[350px] overflow-y-auto pr-1">
+                                    {NICHES.map((n) => {
+                                        const isLocked = !isPro && !isAdmin && !n.free;
+                                        const isSelected = niche === n.value;
+                                        return (
+                                            <button
+                                                key={n.key}
+                                                onClick={() => {
+                                                    if (isLocked) {
+                                                        setShowUpgradeModal(true);
+                                                    } else if (!isLoading) {
+                                                        setNiche(n.value);
+                                                    }
+                                                }}
+                                                disabled={isLoading && !isLocked}
+                                                className={`
+                                                relative p-3 rounded-xl text-center transition-all
+                                                ${isSelected && !isLocked
+                                                        ? `bg-gradient-to-r ${n.color} text-white shadow-lg ring-2 ring-white/30`
+                                                        : isLocked
+                                                            ? "bg-white/5 hover:bg-white/10 text-muted-foreground cursor-pointer"
+                                                            : "bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white"
+                                                    }
+                                            `}
+                                            >
+                                                {isLocked && (
+                                                    <div className="absolute top-1 right-1">
+                                                        <Lock className="w-3 h-3 text-purple-400" />
+                                                    </div>
+                                                )}
+                                                <span className="text-2xl block">{n.emoji}</span>
+                                                <span className={`text-xs block mt-1 font-medium ${isLocked ? "text-purple-400" : ""}`}>
+                                                    {n.label}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         )}
-                    </Button>
+
+                        {/* Step 2: Video Style */}
+                        {wizardStep === 2 && (
+                            <div className="glass rounded-2xl p-6 transition-all">
+                                <Label className="text-lg font-bold text-white mb-4 block">
+                                    🎬 Video Stilinizi Seçin
+                                </Label>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Videonuz nasıl bir format olacak? Her stil farklı hook stratejisi gerektirir.
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {VIDEO_STYLES.map((s) => (
+                                        <button
+                                            key={s.key}
+                                            onClick={() => !isLoading && setVideoStyle(s.value)}
+                                            disabled={isLoading}
+                                            className={`p-4 rounded-xl flex items-center gap-3 transition-all ${videoStyle === s.value
+                                                ? "gradient-accent text-white shadow-lg ring-2 ring-purple-400/50"
+                                                : "bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white"
+                                                }`}
+                                        >
+                                            <span className="text-2xl">{s.emoji}</span>
+                                            <div className="text-left">
+                                                <span className="text-sm font-semibold block">{s.label}</span>
+                                                <span className="text-xs opacity-70">{s.desc}</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 3: Tone & Duration */}
+                        {wizardStep === 3 && (
+                            <div className="glass rounded-2xl p-6 transition-all">
+                                <Label className="text-lg font-bold text-white mb-4 block">
+                                    🎭 Ton & Süre Seçin
+                                </Label>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    İçeriğinizin havası nasıl olsun? Süre platformunuza göre seçin.
+                                </p>
+
+                                <div className="mb-6">
+                                    <Label className="text-sm font-semibold text-white mb-3 block">Ton</Label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        {TONES.map((t) => (
+                                            <button
+                                                key={t.key}
+                                                onClick={() => !isLoading && setTone(t.value)}
+                                                disabled={isLoading}
+                                                className={`p-4 rounded-xl flex flex-col items-center gap-1 transition-all ${tone === t.value
+                                                    ? "gradient-primary text-black shadow-lg ring-2 ring-cyan-400/50"
+                                                    : "bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white"
+                                                    }`}
+                                            >
+                                                <span className="text-2xl">{t.emoji}</span>
+                                                <span className="text-xs font-bold">{t.label}</span>
+                                                <span className={`text-[10px] text-center leading-tight ${tone === t.value ? 'text-black/70' : 'opacity-60'}`}>{t.desc}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <Label className="text-sm font-semibold text-white mb-3 block">⏱️ Video Süresi</Label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {[
+                                            { value: "30", label: "30 saniye", desc: "Kısa & vurucu" },
+                                            { value: "60", label: "60 saniye", desc: "Standart" },
+                                            { value: "90", label: "90 saniye", desc: "Detaylı" }
+                                        ].map((d) => (
+                                            <button
+                                                key={d.value}
+                                                onClick={() => !isLoading && setDuration(d.value)}
+                                                disabled={isLoading}
+                                                className={`p-4 rounded-xl transition-all ${duration === d.value
+                                                    ? "bg-white text-black shadow-lg"
+                                                    : "bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10"
+                                                    }`}
+                                            >
+                                                <span className="text-lg font-bold block">{d.value}s</span>
+                                                <span className="text-xs opacity-70">{d.desc}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 4: Topic & Advanced */}
+                        {wizardStep === 4 && (
+                            <div className="glass rounded-2xl p-6 transition-all">
+                                <Label className="text-lg font-bold text-white mb-4 block">
+                                    ✍️ Konu & Detaylar
+                                </Label>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Spesifik olun! "Kilo verme" yerine "30 günde 5 kilo verme yolculuğum" gibi.
+                                </p>
+
+                                <div className="space-y-4 mb-6">
+                                    <Input
+                                        placeholder="Videonuzun konusu nedir?"
+                                        value={topic}
+                                        onChange={(e) => setTopic(e.target.value)}
+                                        className="bg-white/5 border-white/10 text-white h-14 text-lg"
+                                        disabled={isLoading}
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        className="w-full border-cyan-500/30 hover:bg-cyan-500/10 text-cyan-400 hover:text-cyan-300"
+                                        onClick={handleRandomTopic}
+                                        disabled={!niche || isLoading}
+                                    >
+                                        <Shuffle className="w-4 h-4 mr-2" />
+                                        AI Konu Öner
+                                    </Button>
+                                </div>
+
+                                {/* Advanced Targeting (Optional) */}
+                                <div className="border-t border-white/10 pt-6">
+                                    <Label className="text-sm font-semibold text-purple-400 mb-4 block flex items-center gap-2">
+                                        <Sparkles className="w-4 h-4" />
+                                        Gelişmiş Hedefleme (Opsiyonel)
+                                    </Label>
+                                    <div className="grid gap-4">
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Hedef Kitle</Label>
+                                            <Input
+                                                placeholder="örn: 18-25 yaş, üniversite öğrencileri"
+                                                value={targetAudience}
+                                                onChange={(e) => setTargetAudience(e.target.value)}
+                                                disabled={isLoading}
+                                                className="bg-white/5 border-white/10 text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Problem / Acı Noktası</Label>
+                                            <Input
+                                                placeholder="örn: zaman yönetimi sorunu"
+                                                value={painPoint}
+                                                onChange={(e) => setPainPoint(e.target.value)}
+                                                disabled={isLoading}
+                                                className="bg-white/5 border-white/10 text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Benzersiz Değer</Label>
+                                            <Input
+                                                placeholder="örn: 3 yıllık tecrübe"
+                                                value={uniqueValue}
+                                                onChange={(e) => setUniqueValue(e.target.value)}
+                                                disabled={isLoading}
+                                                className="bg-white/5 border-white/10 text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Navigation Buttons */}
+                        <div className="flex items-center justify-between mt-6 gap-4">
+                            <Button
+                                variant="outline"
+                                onClick={goBack}
+                                disabled={wizardStep === 1}
+                                className={`px-6 py-5 ${wizardStep === 1 ? 'invisible' : ''}`}
+                            >
+                                <ChevronLeft className="w-4 h-4 mr-2" />
+                                Geri
+                            </Button>
+
+                            {wizardStep < 4 ? (
+                                <Button
+                                    onClick={goNext}
+                                    disabled={!canProceed}
+                                    className="px-8 py-5 gradient-primary text-black font-bold shadow-lg shadow-cyan-500/30"
+                                >
+                                    İleri
+                                    <ChevronRight className="w-4 h-4 ml-2" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="lg"
+                                    className="px-12 py-6 text-lg font-bold gradient-primary text-black hover:opacity-90 disabled:opacity-50 glow-cyan shadow-xl shadow-cyan-500/30"
+                                    onClick={handleGenerate}
+                                    disabled={isLoading || !canGenerate}
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                                            Üretiliyor...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-6 h-6 mr-3" />
+                                            Hook Üret
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Selection Summary - Right Sidebar */}
+                    <div className="md:col-span-1">
+                        <div className="glass rounded-2xl p-5 sticky top-24">
+                            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-cyan-400" />
+                                Seçimleriniz
+                            </h3>
+                            <div className="space-y-3">
+                                {/* Niche */}
+                                <div className={`p-3 rounded-xl transition-all ${niche ? 'bg-cyan-500/10 border border-cyan-500/30' : 'bg-white/5 border border-white/10'}`}>
+                                    <p className="text-[10px] text-muted-foreground mb-1">📌 Niş</p>
+                                    {niche ? (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">{NICHES.find(n => n.value === niche)?.emoji}</span>
+                                            <span className="text-sm font-medium text-white">{NICHES.find(n => n.value === niche)?.label}</span>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic">Seçilmedi</p>
+                                    )}
+                                </div>
+
+                                {/* Video Style */}
+                                <div className={`p-3 rounded-xl transition-all ${videoStyle ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-white/5 border border-white/10'}`}>
+                                    <p className="text-[10px] text-muted-foreground mb-1">🎬 Video Stili</p>
+                                    {videoStyle ? (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">{VIDEO_STYLES.find(s => s.value === videoStyle)?.emoji}</span>
+                                            <span className="text-sm font-medium text-white">{VIDEO_STYLES.find(s => s.value === videoStyle)?.label}</span>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic">Seçilmedi</p>
+                                    )}
+                                </div>
+
+                                {/* Tone */}
+                                <div className={`p-3 rounded-xl transition-all ${tone ? 'bg-pink-500/10 border border-pink-500/30' : 'bg-white/5 border border-white/10'}`}>
+                                    <p className="text-[10px] text-muted-foreground mb-1">🎭 Ton</p>
+                                    {tone ? (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">{TONES.find(t => t.value === tone)?.emoji}</span>
+                                            <span className="text-sm font-medium text-white">{TONES.find(t => t.value === tone)?.label}</span>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic">Seçilmedi</p>
+                                    )}
+                                </div>
+
+                                {/* Duration */}
+                                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                                    <p className="text-[10px] text-muted-foreground mb-1">⏱️ Süre</p>
+                                    <p className="text-sm font-medium text-white">{duration} saniye</p>
+                                </div>
+
+                                {/* Topic */}
+                                <div className={`p-3 rounded-xl transition-all ${topic ? 'bg-green-500/10 border border-green-500/30' : 'bg-white/5 border border-white/10'}`}>
+                                    <p className="text-[10px] text-muted-foreground mb-1">✍️ Konu</p>
+                                    {topic ? (
+                                        <p className="text-sm font-medium text-white line-clamp-2">{topic}</p>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic">Girilmedi</p>
+                                    )}
+                                </div>
+
+                                {/* Advanced Targeting (if any) */}
+                                {(targetAudience || painPoint || uniqueValue) && (
+                                    <div className="pt-3 border-t border-white/10">
+                                        <p className="text-[10px] text-purple-400 mb-2 flex items-center gap-1">
+                                            <Sparkles className="w-3 h-3" />
+                                            Gelişmiş Hedefleme
+                                        </p>
+                                        {targetAudience && (
+                                            <p className="text-xs text-muted-foreground mb-1">
+                                                👤 <span className="text-white/80">{targetAudience}</span>
+                                            </p>
+                                        )}
+                                        {painPoint && (
+                                            <p className="text-xs text-muted-foreground mb-1">
+                                                💢 <span className="text-white/80">{painPoint}</span>
+                                            </p>
+                                        )}
+                                        {uniqueValue && (
+                                            <p className="text-xs text-muted-foreground">
+                                                ✨ <span className="text-white/80">{uniqueValue}</span>
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Error Display */}
@@ -715,47 +835,47 @@ export default function GeneratorPage() {
                 <div className="max-w-5xl mx-auto">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20">
-                            <div className="relative mb-6">
-                                <div className="w-20 h-20 rounded-full gradient-primary animate-pulse" />
-                                <Sparkles className="w-10 h-10 text-black absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            {/* Premium Loading Spinner */}
+                            <div className="relative mb-8">
+                                <div className="w-24 h-24 rounded-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 animate-spin" style={{ animationDuration: '2s' }} />
+                                <div className="absolute inset-1 rounded-full bg-background" />
+                                <div className="absolute inset-3 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 animate-pulse" />
+                                <Sparkles className="w-8 h-8 text-cyan-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
                             </div>
-                            <p className="text-lg text-white font-medium mb-2">AI çalışıyor...</p>
-                            <p className="text-muted-foreground text-sm">Viral hooklar oluşturuluyor</p>
+                            <h3 className="text-xl font-bold text-white mb-2">AI Çalışıyor...</h3>
+                            <p className="text-muted-foreground">Viral hook'lar oluşturuluyor</p>
+                            <div className="flex items-center gap-1 mt-4">
+                                <div className="w-2 h-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <div className="w-2 h-2 rounded-full bg-pink-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
                         </div>
                     ) : result ? (
                         <ResultsDisplay
                             content={result}
                             language="tr"
-                            onAnalyze={handleAnalyze}
-                            isAnalyzing={isAnalyzing}
                         />
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="grid grid-cols-3 gap-4 mb-8 opacity-50">
-                                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 flex items-center justify-center">
-                                    <Zap className="w-8 h-8 text-cyan-500" />
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            {/* Premium Empty State Icons */}
+                            <div className="flex items-center gap-6 mb-10">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 transform hover:scale-105 transition-transform">
+                                    <Zap className="w-8 h-8 text-white" />
                                 </div>
-                                <div className="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center">
-                                    <FileText className="w-8 h-8 text-purple-500" />
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 transform hover:scale-105 transition-transform">
+                                    <FileText className="w-10 h-10 text-white" />
                                 </div>
-                                <div className="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center">
-                                    <Video className="w-8 h-8 text-pink-500" />
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/30 transform hover:scale-105 transition-transform">
+                                    <Video className="w-8 h-8 text-white" />
                                 </div>
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">Sonuçlar burada görünecek</h3>
-                            <p className="text-muted-foreground max-w-md">
-                                Niş, stil, ton ve konu seçin, ardından oluştur butonuna tıklayın
+                            <h3 className="text-2xl font-bold text-white mb-3">Sonuçlar Burada Görünecek</h3>
+                            <p className="text-muted-foreground max-w-md leading-relaxed">
+                                Yukarıdan niş, stil, ton ve konu seçip <span className="text-cyan-400 font-medium">Hook Üret</span> butonuna tıklayın
                             </p>
                         </div>
                     )}
                 </div>
-
-                {/* Analysis Modal */}
-                <AnalysisModal 
-                    open={!!analysisResult}
-                    onClose={() => setAnalysisResult(null)}
-                    result={analysisResult}
-                />
             </main>
 
             {/* Upgrade Modal */}
