@@ -398,13 +398,17 @@ export default function AdminDashboard() {
                 if (data.email === SUPER_ADMIN_EMAIL_CHECK) {
                     return;
                 }
+                // Calculate online status with timeout (90s to allow for heartbeat delays)
+                const lastActive = data.lastActivity ? new Date(data.lastActivity).getTime() : 0;
+                const isOnlineCalc = (data.isOnline || false) && ((Date.now() - lastActive) < 90000);
+
                 usersData.push({
                     id: doc.id,
                     email: data.email || null,
                     username: data.username || data.displayUsername || null,
                     isPro: data.isPro || false,
                     isAdmin: data.isAdmin || false,
-                    isOnline: data.isOnline || false,
+                    isOnline: isOnlineCalc,
                     generationsToday: data.generationsToday || 0,
                     generationsTotal: data.generationsTotal || 0,
                     createdAt: data.createdAt || "",
