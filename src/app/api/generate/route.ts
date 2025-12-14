@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
             videoStyle,
             topic,
             tone,
-            duration = "60",
+            wordCount = "50-80",
             language = "tr",
             userId,
             // Advanced targeting fields
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
             videoStyle,
             topic,
             tone,
-            duration,
+            wordCount,
             language,
             // Advanced targeting
             targetAudience,

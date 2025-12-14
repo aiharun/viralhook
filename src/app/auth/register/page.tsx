@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Rocket, Mail, Lock, Loader2, UserPlus } from "lucide-react";
+import { Rocket, Mail, Lock, Loader2, UserPlus, User } from "lucide-react";
 
 export default function RegisterPage() {
     const router = useRouter();
     const { signUpWithEmail } = useAuth();
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,7 +21,18 @@ export default function RegisterPage() {
         e.preventDefault();
         setError("");
 
-        // Validation
+        // Username validation
+        if (username.length < 3) {
+            setError("Kullanıcı adı en az 3 karakter olmalıdır");
+            return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+            setError("Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir");
+            return;
+        }
+
+        // Password validation
         if (password !== confirmPassword) {
             setError("Şifreler eşleşmiyor");
             return;
@@ -34,7 +46,7 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            await signUpWithEmail(email, password);
+            await signUpWithEmail(email, password, username);
             router.push("/generator");
         } catch (err: any) {
             if (err.code === "auth/email-already-in-use") {
@@ -85,6 +97,29 @@ export default function RegisterPage() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Username */}
+                        <div>
+                            <label className="block text-sm font-medium text-white mb-2">
+                                Kullanıcı Adı
+                            </label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                                    placeholder="Kullanıcı adı giriniz"
+                                    required
+                                    minLength={3}
+                                    pattern="[a-zA-Z0-9_]+"
+                                    className="w-full pl-11 pr-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Sadece harf, rakam ve alt çizgi
+                            </p>
+                        </div>
+
                         {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-white mb-2">
@@ -96,7 +131,7 @@ export default function RegisterPage() {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="ornek@email.com"
+                                    placeholder="ornek@gmail.com"
                                     required
                                     className="w-full pl-11 pr-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                                 />

@@ -8,7 +8,7 @@ interface PromptParams {
   videoStyle: string;
   topic: string;
   tone?: string;
-  duration: string;
+  wordCount: string;
   language?: string;
   // Advanced targeting for more engaging content
   targetAudience?: string;
@@ -57,14 +57,13 @@ export const SYSTEM_PROMPT = `You are an ELITE TikTok viral strategist with 100M
  */
 export function buildUserPrompt(params: PromptParams): string {
   const {
-    niche, videoStyle, topic, tone, duration, language = "en",
+    niche, videoStyle, topic, tone, wordCount, language = "en",
     targetAudience, painPoint, uniqueValue
   } = params;
 
-  // Optimized word counts - 90s reduced to prevent timeout
-  const wordCount = duration === '30' ? '150-180'
-    : duration === '60' ? '300-360'
-      : '350-420';  // Reduced from 450-540 for faster generation
+  // Parse word count range (e.g., "30-50" -> min: 30, max: 50)
+  const [minWords, maxWords] = wordCount.split('-').map(Number);
+  const wordRange = `${minWords}-${maxWords}`;
 
   const langInstruction = language === "tr"
     ? "⚠️ CRITICAL: Generate ALL content in TURKISH."
@@ -82,14 +81,14 @@ Use this targeting info to make hooks more specific, relatable, and scroll-stopp
 
   return `${langInstruction}
 
-📌 Niche: ${niche} | 🎥 Style: ${videoStyle} | 💡 Topic: ${topic}${tone ? ` | 🎭 ${tone}` : ''} | ⏱️ ${duration}s
+📌 Niche: ${niche} | 🎥 Style: ${videoStyle} | 💡 Topic: ${topic}${tone ? ` | 🎭 ${tone}` : ''} | 📝 ${wordRange} kelime
 ${targetingSection}
 
-CRITICAL: Scripts must be LONG ENOUGH to fill ${duration} seconds when spoken naturally.
+CRITICAL: Scripts must be EXACTLY ${wordRange} words long - not more, not less.
 
 INSTRUCTIONS:
 1. Create 10 UNIQUE hooks (under 7 words each)
-2. Write matching ${duration}s script for each (~${wordCount} words)
+2. Write matching script for each (${wordRange} kelime)
 3. Scripts MUST be detailed and story-driven:
    - Include specific examples
    - Add concrete numbers and details
@@ -110,7 +109,7 @@ INSTRUCTIONS:
   "scripts": [
     {
       "hook": "Hook under 7 words",
-      "body": "DETAILED ${duration}s script (~${wordCount} words). Must be conversational, story-driven, and value-dense with specific examples.",
+      "body": "DETAILED script (${wordRange} kelime). Must be conversational, story-driven, and value-dense with specific examples.",
       "callToAction": "POWERFUL CTA (15-25 words): Urgent action + specific benefit + FOMO. Example: 'Kaydet ve takip et yoksa bu bilgiyi bir daha bulamazsın - 2 gün sonra siliniyor'"
     }
   ],
@@ -119,8 +118,8 @@ INSTRUCTIONS:
     {"timing": "3-8s", "text": "💡 Key stat/number (e.g. '%87 bunu bilmiyor')"},
     {"timing": "8-15s", "text": "⚡ Problem/pain point (direct, relatable)"},
     {"timing": "15-25s", "text": "✅ Solution preview (benefit-focused)"},
-    {"timing": "25-${Number(duration) - 5}s", "text": "🎯 Key takeaway (memorable)"},
-    {"timing": "${Number(duration) - 5}-${duration}s", "text": "👆 CTA text (action-focused, URGENT)"}
+    {"timing": "25-30s", "text": "🎯 Key takeaway (memorable)"},
+    {"timing": "30-35s", "text": "👆 CTA text (action-focused, URGENT)"}
   ],
   "visualPrompt": "Background video description in ${language === 'tr' ? 'TURKISH' : 'ENGLISH'}"
 }`;

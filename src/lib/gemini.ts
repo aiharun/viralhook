@@ -123,7 +123,7 @@ export async function generateWithGemini(params: {
     videoStyle: string;
     topic: string;
     tone?: string;
-    duration: string;
+    wordCount: string;
     language?: string;
     // Advanced targeting fields
     targetAudience?: string;
@@ -137,7 +137,7 @@ export async function generateWithGemini(params: {
     console.log(`[${requestId}] Params:`, {
         niche: params.niche,
         videoStyle: params.videoStyle,
-        duration: params.duration,
+        wordCount: params.wordCount,
         language: params.language
     });
 

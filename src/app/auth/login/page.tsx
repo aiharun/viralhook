@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Rocket, Mail, Lock, Loader2 } from "lucide-react";
+import { Rocket, Mail, Lock, Loader2, User } from "lucide-react";
 
 export default function LoginPage() {
     const router = useRouter();
-    const { signInWithEmail } = useAuth();
-    const [email, setEmail] = useState("");
+    const { signInWithEmailOrUsername } = useAuth();
+    const [emailOrUsername, setEmailOrUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -21,10 +21,14 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            await signInWithEmail(email, password);
+            await signInWithEmailOrUsername(emailOrUsername, password);
             router.push("/generator");
         } catch (err: any) {
-            setError(err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
+            if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
+                setError("Geçersiz email/kullanıcı adı veya şifre");
+            } else {
+                setError(err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
+            }
         } finally {
             setLoading(false);
         }
@@ -64,18 +68,18 @@ export default function LoginPage() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Email */}
+                        {/* Email or Username */}
                         <div>
                             <label className="block text-sm font-medium text-white mb-2">
-                                Email
+                                Email veya Kullanıcı Adı
                             </label>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                 <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="ornek@email.com"
+                                    type="text"
+                                    value={emailOrUsername}
+                                    onChange={(e) => setEmailOrUsername(e.target.value)}
+                                    placeholder="Kullanıcı adı veya mail giriniz"
                                     required
                                     className="w-full pl-11 pr-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                                 />

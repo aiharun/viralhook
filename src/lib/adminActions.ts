@@ -14,7 +14,10 @@ import {
 export interface UserStats {
     id: string;
     email: string | null;
+    username: string | null;
     isPro: boolean;
+    isAdmin: boolean;
+    isOnline: boolean;
     generationsToday: number;
     generationsTotal: number;
     createdAt: string;
@@ -55,18 +58,62 @@ export async function toggleUserPro(userId: string): Promise<void> {
     }
 }
 
+// Super admin email - only this user can assign admin roles
+const SUPER_ADMIN_EMAIL = "widrivite@gmail.com";
+
 /**
- * Delete user account
+ * Toggle user's Admin status (only super admin can do this)
  */
-export async function deleteUserAccount(userId: string): Promise<void> {
+export async function toggleAdminStatus(userId: string, requestingUserEmail: string): Promise<void> {
+    // Only super admin can assign admin roles
+    if (requestingUserEmail !== SUPER_ADMIN_EMAIL) {
+        throw new Error("Sadece süper admin bu işlemi yapabilir");
+    }
+
     try {
+        const userRef = doc(db, "users", userId);
+        const userDoc = await getDoc(userRef);
+
+        if (!userDoc.exists()) {
+            throw new Error("User not found");
+        }
+
+        const currentAdminStatus = userDoc.data().isAdmin || false;
+
+        await updateDoc(userRef, {
+            isAdmin: !currentAdminStatus,
+            lastActivity: new Date().toISOString(),
+        });
+
+        console.log(`✅ User ${userId} Admin status: ${currentAdminStatus} → ${!currentAdminStatus}`);
+    } catch (error) {
+        console.error("Error toggling Admin status:", error);
+        throw error;
+    }
+}
+
+/**
+ * Delete user account (from Firestore and Firebase Auth)
+ */
+export async function deleteUserAccount(userId: string, adminEmail: string): Promise<void> {
+    try {
+        // First, call API to delete from Firebase Auth
+        const response = await fetch("/api/admin/delete-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, adminEmail }),
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            console.warn("Auth deletion warning:", data.error);
+            // Continue with Firestore deletion even if Auth fails
+        }
+
         // Delete user document from Firestore
         await deleteDoc(doc(db, "users", userId));
 
-        // Note: Firebase Auth user deletion requires Admin SDK (server-side)
-        // For now, we only delete Firestore data
-
-        console.log(`🗑️ User ${userId} deleted from Firestore`);
+        console.log(`🗑️ User ${userId} fully deleted`);
     } catch (error) {
         console.error("Error deleting user:", error);
         throw error;
@@ -97,6 +144,9 @@ export async function resetUserGenerations(userId: string): Promise<void> {
  * Get all users with stats
  */
 export async function getAllUsers(): Promise<UserStats[]> {
+    // Super admin email (only this user can assign admin roles)
+    const SUPER_ADMIN_EMAIL = "widrivite@gmail.com";
+
     try {
         const usersRef = collection(db, "users");
         const q = query(usersRef, orderBy("createdAt", "desc"));
@@ -106,10 +156,17 @@ export async function getAllUsers(): Promise<UserStats[]> {
 
         snapshot.forEach((doc) => {
             const data = doc.data();
+            // Skip super admin from list
+            if (data.email === SUPER_ADMIN_EMAIL) {
+                return;
+            }
             users.push({
                 id: doc.id,
                 email: data.email || null,
+                username: data.username || data.displayUsername || null,
                 isPro: data.isPro || false,
+                isAdmin: data.isAdmin || false,
+                isOnline: data.isOnline || false,
                 generationsToday: data.generationsToday || 0,
                 generationsTotal: data.generationsTotal || 0,
                 createdAt: data.createdAt || "",
