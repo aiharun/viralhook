@@ -137,12 +137,7 @@ export default function GeneratorPage() {
         }
     }, [user, loading, router]);
 
-    // Check if user needs to set username
-    useEffect(() => {
-        if (!loading && user && !username) {
-            setShowUsernameModal(true);
-        }
-    }, [user, loading, username]);
+
 
     // Handle username submission
     const handleUsernameSubmit = async () => {

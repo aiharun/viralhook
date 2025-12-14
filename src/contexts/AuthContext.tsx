@@ -82,10 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const handleVisibilityChange = async () => {
             if (document.visibilityState === 'hidden') {
-                // Tab hidden - mark as potentially offline
+                // Tab hidden - mark as offline for accurate counting (especially on mobile)
                 try {
                     const userRef = doc(db, "users", user.uid);
                     await updateDoc(userRef, {
+                        isOnline: false,
                         lastActivity: new Date().toISOString()
                     });
                 } catch (error) {
@@ -106,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         window.addEventListener('beforeunload', setOffline);
+        window.addEventListener('pagehide', setOffline);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         // Periodic heartbeat to keep lastActivity updated
@@ -124,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return () => {
             window.removeEventListener('beforeunload', setOffline);
+            window.removeEventListener('pagehide', setOffline);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             clearInterval(heartbeat);
         };

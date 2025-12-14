@@ -12,7 +12,7 @@ import {
     Users, Crown, Zap, TrendingUp, Loader2, Trash2,
     Search, RefreshCw, Shield, ShieldCheck, Home, Rocket,
     BarChart3, UserCheck, UserX, Activity, ChevronRight,
-    Settings, X, User
+    Settings, X, User, UserPlus
 } from "lucide-react";
 import {
     getAllUsers,
@@ -21,6 +21,7 @@ import {
     toggleAdminStatus,
     deleteUserAccount,
     resetUserGenerations,
+    createUser,
     type UserStats,
     type DashboardStats
 } from "@/lib/adminActions";
@@ -361,7 +362,9 @@ export default function AdminDashboard() {
     const [filterPlan, setFilterPlan] = useState<"all" | "pro" | "free" | "admin">("all");
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [selectedUser, setSelectedUser] = useState<UserStats | null>(null);
+
     const [showActiveModal, setShowActiveModal] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Protect route
     useEffect(() => {
@@ -526,6 +529,16 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen bg-background text-white">
             {/* User Management Modal */}
+            {/* Create User Modal */}
+            {showCreateModal && (
+                <CreateUserModal
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={loadData}
+                    adminEmail={user?.email || ""}
+                />
+            )}
+
+            {/* User Edit Modal */}
             {selectedUser && (
                 <UserModal
                     user={selectedUser}
@@ -741,7 +754,7 @@ export default function AdminDashboard() {
                             />
                         </div>
 
-                        {/* Filter Tabs */}
+                        {/* Filter Tabs & Actions */}
                         <div className="flex bg-white/5 rounded-xl p-1 gap-1">
                             {[
                                 { key: "all", label: "Tümü", icon: Users },
@@ -762,6 +775,17 @@ export default function AdminDashboard() {
                                 </button>
                             ))}
                         </div>
+
+                        {/* Create User Button - Only Super Admin */}
+                        {isSuperAdmin && (
+                            <Button
+                                onClick={() => setShowCreateModal(true)}
+                                className="bg-green-600 hover:bg-green-700 text-white gap-2 h-full"
+                            >
+                                <UserPlus className="w-4 h-4" />
+                                <span className="hidden md:inline">Kullanıcı Ekle</span>
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -857,6 +881,126 @@ export default function AdminDashboard() {
                     </div>
                 )}
             </main>
+        </div>
+    );
+}
+
+function CreateUserModal({ onClose, onSuccess, adminEmail }: { onClose: () => void, onSuccess: () => void, adminEmail: string }) {
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        email: "",
+        username: "",
+        password: "",
+        isPro: false,
+        isAdmin: false
+    });
+    const [error, setError] = useState("");
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+
+        if (!formData.email || !formData.password || !formData.username) {
+            setError("Tüm alanları doldurun");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await createUser(formData, adminEmail);
+            onSuccess();
+            onClose();
+        } catch (err: any) {
+            setError(err.message || "Bir hata oluştu");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative glass rounded-3xl p-6 w-full max-w-md border border-white/20 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <UserPlus className="w-5 h-5 text-cyan-400" />
+                        Yeni Kullanıcı
+                    </h2>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                        <X className="w-4 h-4 text-white/60" />
+                    </button>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="text-sm text-white/60 block mb-1">Email</label>
+                        <input
+                            type="email"
+                            value={formData.email}
+                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                            className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500/50"
+                            placeholder="email@ornek.com"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm text-white/60 block mb-1">Kullanıcı Adı</label>
+                        <input
+                            type="text"
+                            value={formData.username}
+                            onChange={e => setFormData({ ...formData, username: e.target.value })}
+                            className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500/50"
+                            placeholder="kullanici_adi"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm text-white/60 block mb-1">Şifre</label>
+                        <input
+                            type="password"
+                            value={formData.password}
+                            onChange={e => setFormData({ ...formData, password: e.target.value })}
+                            className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500/50"
+                            placeholder="******"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                        {/* Pro Switch */}
+                        <div
+                            onClick={() => setFormData({ ...formData, isPro: !formData.isPro })}
+                            className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${formData.isPro ? 'bg-cyan-500/10 border-cyan-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                        >
+                            <span className={`text-sm font-medium ${formData.isPro ? 'text-cyan-400' : 'text-white/70'}`}>Pro Üyelik</span>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative ${formData.isPro ? 'bg-cyan-500' : 'bg-white/20'}`}>
+                                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${formData.isPro ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </div>
+                        </div>
+
+                        {/* Admin Switch */}
+                        <div
+                            onClick={() => setFormData({ ...formData, isAdmin: !formData.isAdmin })}
+                            className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${formData.isAdmin ? 'bg-purple-500/10 border-purple-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                        >
+                            <span className={`text-sm font-medium ${formData.isAdmin ? 'text-purple-400' : 'text-white/70'}`}>Admin</span>
+                            <div className={`w-10 h-6 rounded-full transition-colors relative ${formData.isAdmin ? 'bg-purple-500' : 'bg-white/20'}`}>
+                                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${formData.isAdmin ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 mt-4">
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Kullanıcı Oluştur"}
+                    </Button>
+
+                </form>
+            </div>
         </div>
     );
 }

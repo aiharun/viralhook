@@ -121,6 +121,22 @@ export async function deleteUserAccount(userId: string, adminEmail: string): Pro
 }
 
 /**
+ * Create new user account (calls API)
+ */
+export async function createUser(data: any, adminEmail: string): Promise<void> {
+    const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, adminEmail })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create user");
+    }
+}
+
+/**
  * Reset user's daily generations
  */
 export async function resetUserGenerations(userId: string): Promise<void> {
